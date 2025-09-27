@@ -1,0 +1,44 @@
+version: "3.9"
+services:
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # UI http://localhost:8025
+
+  ms-auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ms-auth
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+
+      # Oracle: el túnel corre en tu PC (Windows)
+      ORACLE_USER: ${ORACLE_USER}
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+      ORACLE_SCHEMA: ${ORACLE_SCHEMA}
+      ORACLE_CONNECT_STRING: //host.docker.internal:51521/XEPDB1
+
+      # JWT
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+
+      # Mail (apunta al servicio 'mailpit')
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+      MAIL_FROM: "Tomza Portal <no-reply@tomza.local>"
+      RESET_BASE_URL: http://localhost:5173/reset-password
+    depends_on:
+      - mailpit
+    restart: unless-stopped
+
+    # Para Linux (en Windows no hace falta, pero no estorba)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
